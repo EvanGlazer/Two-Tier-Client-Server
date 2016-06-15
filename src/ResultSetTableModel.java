@@ -5,6 +5,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 
 // ResultSet rows and columns are counted from 1 and JTable 
@@ -18,18 +19,16 @@ public class ResultSetTableModel extends AbstractTableModel
    private Connection connection;
    private Statement statement;
    private ResultSet resultSet;
+    private ResultSet test;
    private ResultSetMetaData metaData;
    private int numberOfRows;
 
    // keep track of database connection status
    private boolean connectedToDatabase = false;
    
-   // constructor initializes resultSet and obtains its meta data object;
-   // determines number of rows
-   public ResultSetTableModel( String driver, String url, 
-      String username, String password, String query ) 
-      throws SQLException, ClassNotFoundException
-   {         
+     public ResultSetTableModel( String driver, String url, 
+      String username, String password) throws SQLException, ClassNotFoundException
+     {
       // load database driver class
       Class.forName( driver );
 
@@ -44,12 +43,8 @@ public class ResultSetTableModel extends AbstractTableModel
       // update database connection status
       connectedToDatabase = true;
 
-      // set query and execute it
-      setQuery( query );
-		
-	
-   } // end constructor ResultSetTableModel
-
+ 
+     }
    // get class that represents column type
    public Class getColumnClass( int column ) throws IllegalStateException
    {
@@ -155,8 +150,26 @@ public class ResultSetTableModel extends AbstractTableModel
          throw new IllegalStateException( "Not Connected to Database" );
 
       // specify query and execute it
-      resultSet = statement.executeQuery( query );
-
+      if(query.startsWith("select") || query.startsWith("SELECT"))
+      {
+        resultSet = statement.executeQuery( query );
+      }
+      else
+      {
+          try
+          {
+            int num = statement.executeUpdate(query);
+            JOptionPane.showMessageDialog( null, 
+                           num + " rows affects", "Database Response", 
+                           JOptionPane.ERROR_MESSAGE );
+          }
+          catch(SQLException sqlException)
+          {
+                JOptionPane.showMessageDialog( null, 
+                           sqlException.getMessage(), "Database error", 
+                           JOptionPane.ERROR_MESSAGE );
+          }
+      }
       // obtain meta data for ResultSet
       metaData = resultSet.getMetaData();
 
@@ -193,7 +206,13 @@ public class ResultSetTableModel extends AbstractTableModel
    } // end method setUpdate
 
 
-
+   public void clearTable()
+   {
+        metaData = null;
+      // notify JTable that model has changed
+      fireTableStructureChanged();
+        
+   }
 
    // close Statement and Connection               
    public void disconnectFromDatabase()            
